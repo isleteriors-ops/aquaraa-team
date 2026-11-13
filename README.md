@@ -1,6 +1,6 @@
 # Aquaraa Team — standalone edition
 
-Hotel employee management with email/password authentication through Supabase. The previous Sites deployment is unchanged. This source is prepared locally; it is not a deployed or connected Supabase project yet.
+Hotel employee management with email/password authentication through Supabase. The previous Sites deployment is retained during cutover.
 
 ## Features and access
 
@@ -13,7 +13,7 @@ No public account registration route is provided. The administrator registers st
 1. Connect Supabase and create a dedicated Aquaraa project in the intended organization. Choose Singapore if available. No real project has been created by this source preparation.
 2. Apply `supabase/migrations/001_aquaraa.sql` to the dedicated project. Do not use an unrelated existing application's database.
 3. Disable public signups. Enable email/password auth, require email confirmation, set minimum password length to 12, and set account link expiry (recommended 1 hour). Keep secure email changes enabled.
-4. Configure production SMTP before enabling password reset emails. Use the two HTML templates in `supabase/email-templates`. These token-hash templates are required; default implicit-flow email templates are not supported by these server-only sessions.
+4. Password recovery defaults to private administrator-issued setup/reset links. To enable email recovery, configure production SMTP and the two HTML templates in `supabase/email-templates`, verify delivery, then set `AQUARAA_EMAIL_RESET_ENABLED=true`. These token-hash templates are required; default implicit-flow email templates are not supported by these server-only sessions.
 5. Set Site URL and allowed redirects to the final HTTPS origin. Keep localhost allowlisted only for local testing.
 6. Set environment variables from `.env.example` through Render's secret configuration. No Supabase secret is exposed to browser code. `SITE_URL` must equal the exact public origin used for login (no trailing path). Add a custom domain only after DNS validation, then update this setting and Supabase's settings together.
 7. Publish the source to a private GitHub repository accessible to Render. The user confirmed Render workspace `isleteriors` (`tea-db8cpmks728c73907i40`). Existing `isleteriors-os` is unrelated and must not be changed.
@@ -27,7 +27,7 @@ The import document is `{ownerId,revision,data,members}` where `data` is the ori
 
 Run `node scripts/admin-setup.mjs /absolute/private/admin-link.txt` to create a one-time setup link for `hello@aquaraa.com`; no email is sent. The output file is created with mode 0600 and is not overwritten. Share the link privately with the owner, who chooses their own password. After the owner has signed in, verify roles using dedicated test accounts (not real staff payroll). Remove test accounts and test records before staff rollout.
 
-Do not retire the old site until the new admin login, staff isolation, registration/revocation, reset email delivery, and record comparison have all passed. Keep a private export for recovery. Configure provider backups before operational use; this source does not configure backups or email services automatically.
+Do not retire the old site until the new admin login, staff isolation, registration/revocation, password recovery, and record comparison have all passed. Verify reset email delivery separately before enabling email recovery. Keep a private export for recovery. Configure provider backups before operational use; this source does not configure backups or email services automatically.
 
 ## Local development and checks
 

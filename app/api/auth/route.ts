@@ -32,6 +32,7 @@ export async function POST(request:Request){
    return json({ok:true,next:safeReturnTo(cmd.next)});
   }
   if(cmd.action==='reset'){
+   if(process.env.AQUARAA_EMAIL_RESET_ENABLED!=='true')return json({error:'Contact your Aquaraa administrator for a private password reset link.'},503);
    if(!await rateLimit('reset',cmd.email,3,3600))return json({ok:true,message:'If this email has an Aquaraa account, a password reset link will arrive shortly.'});
    const {data,error}=await serviceClient().from('aquaraa_members').select('id').eq('email',cmd.email).limit(1);
    if(error)throw error;
