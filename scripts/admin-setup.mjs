@@ -1,0 +1,13 @@
+import {createClient} from '@supabase/supabase-js';
+import {writeFile} from 'node:fs/promises';
+const {SUPABASE_URL,SUPABASE_SECRET_KEY,SITE_URL,AQUARAA_OWNER_EMAIL}=process.env;
+if(!SUPABASE_URL||!SUPABASE_SECRET_KEY||!SITE_URL||!AQUARAA_OWNER_EMAIL)throw new Error('Configure the server environment first.');
+const output=process.argv[2];if(!output)throw new Error('Provide an absolute private output path for the one-time admin link.');
+if(!output.startsWith('/'))throw new Error('Use an absolute output path.');
+const client=createClient(SUPABASE_URL,SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+let result=await client.auth.admin.generateLink({type:'invite',email:AQUARAA_OWNER_EMAIL});
+if(result.error&&['email_exists','user_already_exists'].includes(result.error.code))result=await client.auth.admin.generateLink({type:'recovery',email:AQUARAA_OWNER_EMAIL});
+if(result.error||!result.data.properties?.hashed_token)throw new Error('Administrator setup link could not be generated.');
+const link=new URL('/auth/confirm',SITE_URL);link.searchParams.set('type',result.data.properties.verification_type);link.searchParams.set('token_hash',result.data.properties.hashed_token);
+await writeFile(output,link.href+'\n',{mode:0o600,flag:'wx'});
+console.log('Administrator setup link saved privately. No email was sent.');

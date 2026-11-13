@@ -1,0 +1,15 @@
+import {z} from 'zod';
+const text=z.string().trim().max(200), id=z.string().min(1).max(80);
+const date=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s=>!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s,'Enter a valid date');
+const time=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const cash=z.number().finite().min(0).max(100000000).refine(v=>Math.abs(v*100-Math.round(v*100))<0.00001,'Use at most two decimal places');
+const period=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+export const employeeSchema=z.object({id,name:text.min(2),role:text.min(2),department:text.min(1),email:z.union([z.literal(''),z.string().email().max(200)]),phone:text,startDate:date,endDate:z.union([z.literal(''),date]),status:z.enum(['Active','Inactive']),salaryMvr:cash,salaryUsd:cash,allowanceMvr:cash,allowanceUsd:cash,serviceEligible:z.boolean()}).refine(e=>!e.endDate||e.endDate>=e.startDate,'Employment end date cannot be before start date').refine(e=>e.status!=='Inactive'||!!e.endDate,'Set an employment end date for inactive staff');
+export const shiftSchema=z.object({id,employeeId:id,date,start:time,end:time,label:text.min(1)}).refine(s=>s.start!==s.end,'Shift start and end must differ');
+export const attendanceSchema=z.object({id,employeeId:id,date,status:z.enum(['Present','Late','Absent','Day off']),checkIn:z.union([z.literal(''),time]),checkOut:z.union([z.literal(''),time]),notes:z.string().trim().max(1000)}).refine(a=>!['Present','Late'].includes(a.status)||!!a.checkIn,'Enter a check-in time for present or late staff').refine(a=>!a.checkOut||!!a.checkIn,'Check-in is required with check-out').refine(a=>!['Absent','Day off'].includes(a.status)||(!a.checkIn&&!a.checkOut),'Absent and day-off records cannot have clock times');
+export const leaveSchema=z.object({id,employeeId:id,type:text.min(1),startDate:date,endDate:date,reason:z.string().trim().min(1).max(1000),status:z.enum(['Pending','Approved','Declined'])}).refine(l=>l.endDate>=l.startDate,'Leave end date cannot be before start date');
+export const adjustmentSchema=z.object({id,employeeId:id,period,extraMvr:cash,extraUsd:cash,deductionMvr:cash,deductionUsd:cash,note:text});
+export const poolSchema=z.object({id,period,mvr:cash,usd:cash});
+export const schemas={employees:employeeSchema,shifts:shiftSchema,attendance:attendanceSchema,leave:leaveSchema,adjustments:adjustmentSchema,pools:poolSchema};
+export type Collection=keyof typeof schemas;
+export const commandSchema=z.object({revision:z.number().int().min(0),action:z.enum(['save','delete','leave-status','payroll']),collection:z.enum(['employees','shifts','attendance','leave','adjustments','pools']).optional(),item:z.unknown().optional(),id:id.optional(),status:z.enum(['Approved','Declined']).optional(),period:period.optional()});
